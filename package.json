@@ -1,0 +1,12 @@
+{
+  "name": "agentic-fab-web-tester",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "test": "bunx playwright test",
+    "test:ui": "bunx playwright test --ui"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.0"
+  }
+}
