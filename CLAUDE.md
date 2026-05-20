@@ -21,9 +21,11 @@ BACKEND_REPO=https://github.com/your-org/your-backend
 FRONTEND_REPO=https://github.com/your-org/your-frontend
 BACKEND_BRANCH=main
 FRONTEND_BRANCH=main
+BACKEND_PORT=7330
+FRONTEND_PORT=7332
 ```
 
-Never hardcode repo URLs or branch names — always read from `.env`.
+Never hardcode repo URLs, branch names, or port numbers — always read from `.env`.
 
 ---
 
@@ -73,37 +75,35 @@ git -C repos/frontend checkout "$FRONTEND_BRANCH"
 git -C repos/frontend pull origin "$FRONTEND_BRANCH"
 ```
 
-### 3. Start the backend (port 3000)
-
-> **Port constraint:** The frontend's `src/lib/api.ts` hardcodes `http://localhost:3000` as the API base URL. The backend must run on port 3000 — there is no env var to override it without modifying frontend source code, which is not permitted.
+### 3. Start the backend
 
 ```bash
 cd repos/backend
 bun install
 bun run migrate
 bun run seed
-PORT=3000 bun run dev
+PORT=$BACKEND_PORT bun run dev
 ```
 
-Run the backend in the background and wait until it responds on `http://localhost:3000` before proceeding.
+Run the backend in the background and wait until it responds on `http://localhost:$BACKEND_PORT` before proceeding.
 
-### 4. Start the frontend (port 7332)
+### 4. Start the frontend
 
 ```bash
 cd repos/frontend
 bun install
-PORT=7332 bun run dev
+PORT=$FRONTEND_PORT bun run dev
 ```
 
 The Vite config (`vite.config.ts`) reads `PORT` from the environment to set the dev server port.
 
-Run the frontend in the background and wait until it responds on `http://localhost:7332` before proceeding.
+Run the frontend in the background and wait until it responds on `http://localhost:$FRONTEND_PORT` before proceeding.
 
 ### 5. Verify both services are up
 
 Before running any tests, confirm:
-- `curl -sf http://localhost:3000/auth/me` returns any response (a 401 is fine — it means the backend is up)
-- `curl -sf http://localhost:7332/` returns a non-error response
+- `curl -sf http://localhost:$BACKEND_PORT/auth/me` returns any response (a 401 is fine — it means the backend is up)
+- `curl -sf http://localhost:$FRONTEND_PORT/` returns a non-error response
 
 If either check fails, report the failure with the last 50 lines of that process's output and stop.
 
@@ -112,8 +112,8 @@ If either check fails, report the failure with the last 50 lines of that process
 ## Writing Playwright Tests
 
 - Put all test files under `tests/`.
-- Use `http://localhost:7332` as the base URL for the frontend.
-- Use `http://localhost:3000` as the base URL for direct backend API calls.
+- Use `http://localhost:$FRONTEND_PORT` (from `.env`) as the base URL for the frontend.
+- Use `http://localhost:$BACKEND_PORT` (from `.env`) as the base URL for direct backend API calls.
 - Tests must be self-contained: each test should set up any data it needs via the UI or API, and must not depend on test ordering.
 - Prefer testing via the UI (frontend) over calling the API directly, unless the task specifically requires API-level validation.
 - Keep tests focused: one behavior per test.
@@ -207,6 +207,6 @@ When done, stop the backend and frontend processes and clean up any temp files. 
 
 ## Notes
 
-- The backend runs on port **3000** (forced by the frontend's hardcoded `BASE_URL` in `src/lib/api.ts`). The frontend runs on port **7332**.
+- Both ports are configurable via `.env`: `BACKEND_PORT` (default 7330) and `FRONTEND_PORT` (default 7332).
 - The backend uses SQLite — each run migrates and seeds from scratch into a clean DB file. Confirm the DB file path from the backend config before running migrations.
 - Never commit `.env` — it contains repo URLs and may contain secrets.
