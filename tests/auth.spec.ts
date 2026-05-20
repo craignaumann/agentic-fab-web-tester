@@ -1,6 +1,6 @@
 import { test, expect, request as makeRequest } from '@playwright/test'
 
-const BACKEND = 'http://localhost:3000'
+const BACKEND = `http://localhost:${process.env.BACKEND_PORT ?? '7330'}`
 
 // Unique email per call — prevents cross-test collisions in the shared DB.
 function uid(prefix: string) {
@@ -21,7 +21,7 @@ test.describe('Register', () => {
   test('happy path: valid credentials redirect to login', async ({ page }) => {
     await page.goto('/register')
     await page.getByLabel('Email').fill(uid('reg'))
-    await page.getByLabel('Password').fill('password123')
+    await page.getByLabel('Password', { exact: true }).fill('password123')
     await page.getByLabel('Confirm password').fill('password123')
     await page.getByRole('button', { name: 'Create account' }).click()
     await expect(page).toHaveURL('/login')
@@ -30,7 +30,7 @@ test.describe('Register', () => {
   test('mismatched passwords shows validation error', async ({ page }) => {
     await page.goto('/register')
     await page.getByLabel('Email').fill(uid('mismatch'))
-    await page.getByLabel('Password').fill('password123')
+    await page.getByLabel('Password', { exact: true }).fill('password123')
     await page.getByLabel('Confirm password').fill('different456')
     await page.getByRole('button', { name: 'Create account' }).click()
     await expect(page.getByText('Passwords do not match')).toBeVisible()
@@ -40,7 +40,7 @@ test.describe('Register', () => {
   test('short password shows validation error', async ({ page }) => {
     await page.goto('/register')
     await page.getByLabel('Email').fill(uid('short'))
-    await page.getByLabel('Password').fill('abc')
+    await page.getByLabel('Password', { exact: true }).fill('abc')
     await page.getByLabel('Confirm password').fill('abc')
     await page.getByRole('button', { name: 'Create account' }).click()
     await expect(page.getByText('Password must be at least 6 characters')).toBeVisible()
@@ -50,7 +50,7 @@ test.describe('Register', () => {
   test('invalid email format shows validation error', async ({ page }) => {
     await page.goto('/register')
     await page.getByLabel('Email').fill('not-an-email')
-    await page.getByLabel('Password').fill('password123')
+    await page.getByLabel('Password', { exact: true }).fill('password123')
     await page.getByLabel('Confirm password').fill('password123')
     await page.getByRole('button', { name: 'Create account' }).click()
     await expect(page.getByText('Invalid email address')).toBeVisible()
@@ -63,7 +63,7 @@ test.describe('Register', () => {
 
     await page.goto('/register')
     await page.getByLabel('Email').fill(email)
-    await page.getByLabel('Password').fill('password123')
+    await page.getByLabel('Password', { exact: true }).fill('password123')
     await page.getByLabel('Confirm password').fill('password123')
     await page.getByRole('button', { name: 'Create account' }).click()
     await expect(page.getByText('An account with that email already exists.')).toBeVisible()
@@ -93,7 +93,7 @@ test.describe('Login', () => {
     await page.getByLabel('Email').fill(email)
     await page.getByLabel('Password').fill('wrongpassword')
     await page.getByRole('button', { name: 'Sign in' }).click()
-    await expect(page.getByText('Invalid credentials')).toBeVisible()
+    await expect(page.getByText('Unauthorized')).toBeVisible()
     await expect(page).toHaveURL('/login')
   })
 
@@ -102,7 +102,7 @@ test.describe('Login', () => {
     await page.getByLabel('Email').fill(uid('nobody'))
     await page.getByLabel('Password').fill('password123')
     await page.getByRole('button', { name: 'Sign in' }).click()
-    await expect(page.getByText('Invalid credentials')).toBeVisible()
+    await expect(page.getByText('Unauthorized')).toBeVisible()
     await expect(page).toHaveURL('/login')
   })
 
