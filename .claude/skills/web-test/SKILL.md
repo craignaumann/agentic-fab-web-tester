@@ -15,6 +15,7 @@ Collect all of the following before writing a single test. The user may provide 
 **Branches:**
 - Ask for (or confirm) the frontend branch to test.
 - Ask for (or confirm) the backend branch to use (default: `main` unless told otherwise).
+- Ask for (or confirm) the CLI runner branch to use (default: `main` unless told otherwise).
 
 **Test scope:** Collect details from whichever sources are available:
 - **GitHub PR:** If a PR URL or number is given, read the PR description, diff, and any review comments with `gh pr view` and `gh pr diff`. Identify new UI routes, components, API endpoints, and state changes introduced by the PR.
@@ -41,15 +42,15 @@ Then call `EnterWorktree` with `path: .worktrees/<branch-name>`. All subsequent 
 
 ## Step 3 — Update repos to the correct branches
 
-Read `.env` at the project root for `BACKEND_REPO`, `FRONTEND_REPO`, `BACKEND_BRANCH`, `FRONTEND_BRANCH`, `BACKEND_PORT`, and `FRONTEND_PORT`. If `.env` is missing, tell the user to create it from `.env.example` and stop.
+Read `.env` at the project root for `BACKEND_REPO`, `FRONTEND_REPO`, `CLI_REPO`, `BACKEND_BRANCH`, `FRONTEND_BRANCH`, `CLI_BRANCH`, `BACKEND_PORT`, and `FRONTEND_PORT`. If `.env` is missing, tell the user to create it from `.env.example` and stop.
 
-Override `BACKEND_BRANCH` and `FRONTEND_BRANCH` with the branches confirmed in Step 1 if they differ from `.env`.
+Override `BACKEND_BRANCH`, `FRONTEND_BRANCH`, and `CLI_BRANCH` with the branches confirmed in Step 1 if they differ from `.env`.
 
-For each repo (`repos/backend`, `repos/frontend`):
+For each repo (`repos/backend`, `repos/frontend`, `repos/cli`):
 - If already cloned: `git fetch origin`, then checkout the correct branch and pull.
-- If not cloned: `git clone <REPO> repos/<backend|frontend>`.
+- If not cloned: `git clone <REPO> repos/<backend|frontend|cli>`.
 
-If either checkout fails, report the full error and stop.
+If any checkout fails, report the full error and stop.
 
 ---
 
@@ -80,6 +81,19 @@ If it does not respond within 30 seconds, print the last 50 lines of its log and
 
 ---
 
+## Step 5b — Install CLI runner deps, generate credentials, start daemon
+
+From `repos/cli`:
+1. `bun install`
+
+Then generate the test agent and API key by following **CLAUDE.md step 7** exactly (login as seed user, create agent, create API key, export `CLI_AGENT_ID` and `CLI_API_KEY` as shell variables).
+
+Then start the CLI runner daemon by following **CLAUDE.md step 8** exactly (read `package.json`/README for startup command and env var names, start in background, verify alive, watch log).
+
+If any sub-step fails, report the full error and stop.
+
+---
+
 ## Step 6 — Write the tests
 
 Create `tests/<feature-slug>.spec.ts`. Follow the patterns established in the existing test files:
@@ -98,7 +112,8 @@ Cover the full scope identified in Step 1: new routes, UI states (empty, loading
 ## Step 7 — Run the tests
 
 ```
-bunx playwright test tests/<feature-slug>.spec.ts
+CLI_AGENT_ID="$CLI_AGENT_ID" CLI_API_KEY="$CLI_API_KEY" \
+BACKEND_PORT="$BACKEND_PORT" bunx playwright test tests/<feature-slug>.spec.ts
 ```
 
 If any test fails, do not modify the backend or frontend source to make it pass. Diagnose whether the failure is:
@@ -125,6 +140,7 @@ Start at `0001` if `reports/` is empty. Write `reports/NNNN-report.md`.
 **Date:** YYYY-MM-DD
 **Backend branch:** <branch> (<repo>)
 **Frontend branch:** <branch> (<repo>)
+**CLI runner branch:** <branch> (<repo>)
 **Tests run:** <file>
 **Overall result:** ✅ PASS / ❌ FAIL
 
@@ -136,9 +152,12 @@ Start at `0001` if `reports/` is empty. Write `reports/NNNN-report.md`.
 |---|---|---|
 | Clone/update backend | ✅/❌ | |
 | Clone/update frontend | ✅/❌ | |
+| Clone/update CLI runner | ✅/❌ | |
 | Database migration | ✅/❌ | |
 | Backend started | ✅/❌ | |
 | Frontend started | ✅/❌ | |
+| Generate test agent + API key | ✅/❌ | |
+| CLI runner started | ✅/❌ | |
 
 <!-- Include full error output for any failed step -->
 
@@ -199,4 +218,12 @@ Return the PR URL to the user.
 
 ## Step 10 — Tear down
 
-Stop the background backend and frontend processes (kill by PID or port). Do not delete `repos/` — leave clones in place for future runs.
+Stop all three background processes (kill by PID or port). Also stop the CLI runner:
+
+```bash
+kill $CLI_PID 2>/dev/null || true
+pkill -f "bun run start" 2>/dev/null || true
+rm -f /tmp/cli-runner.log
+```
+
+Do not delete `repos/` — leave clones in place for future runs.
