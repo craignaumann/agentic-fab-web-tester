@@ -125,6 +125,7 @@ test.describe('Logout', () => {
     await page.getByRole('button', { name: 'Sign in' }).click()
     await expect(page).toHaveURL('/agents')
 
+    await page.getByRole('button', { name: 'Open user menu' }).click()
     await page.getByRole('button', { name: 'Log out' }).click()
     await expect(page).toHaveURL('/login')
   })
@@ -139,6 +140,7 @@ test.describe('Logout', () => {
     await page.getByRole('button', { name: 'Sign in' }).click()
     await expect(page).toHaveURL('/agents')
 
+    await page.getByRole('button', { name: 'Open user menu' }).click()
     await page.getByRole('button', { name: 'Log out' }).click()
     await expect(page).toHaveURL('/login')
 
