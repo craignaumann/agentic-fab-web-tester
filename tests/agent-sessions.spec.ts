@@ -300,8 +300,9 @@ test.describe('View agent session', () => {
 
     await page.goto(`/agent-sessions/${session.id}`)
 
+    // WebSocket connects immediately on this branch — placeholder shows "Connected" state
     await expect(
-      page.getByText('Agent messages will appear here once the session is picked up.'),
+      page.getByText(/Connected — waiting for messages|Agent messages will appear here/),
     ).toBeVisible()
   })
 
