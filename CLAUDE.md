@@ -87,8 +87,10 @@ cd repos/backend
 bun install
 bun run migrate
 bun run seed
-PORT=$BACKEND_PORT bun run dev
+PORT=$BACKEND_PORT QUEUE_DRIVER=inline bun run dev
 ```
+
+`QUEUE_DRIVER=inline` is required. Without it the backend defaults to BullMQ (Redis), which is not available in the test harness. The inline driver runs background jobs (e.g. session-usage aggregation) synchronously in-process, so results are available immediately after the triggering request completes.
 
 Run the backend in the background and wait until it responds on `http://localhost:$BACKEND_PORT` before proceeding.
 
